@@ -1,5 +1,5 @@
 class GameBoard
-    attr_accessor :field, :winner, :end_game
+    attr_accessor :field, :winner, :end_game, :turn_counter
 
     def initialize(pl1, pl2)
         @field = Array.new(6) { Array.new(7) { "\u25ef" } }
@@ -7,6 +7,7 @@ class GameBoard
         @pl2 = pl2
         @winner = nil
         @end_game = false
+        @turn_counter = 0
         game
     end
 
@@ -31,6 +32,61 @@ class GameBoard
         puts r6
         puts divide
     end
+
+    def game
+        curr_player = @pl1
+
+        until @end_game
+            display_field
+            puts("#{curr_player}, insert the chip into the column of your choice:")
+            chosen_column = gets.chomp.to_i
+
+            next if @field[0][chosen_column].include?(@pl1.mark) || @field[0][chosen_column].include?(@pl2.mark)
+            
+            chip_insertion(chosen_column, curr_player)
+            @turn_counter += 1
+
+            check_for_game_over(curr_player)
+            @end_game = true if @turn_counter == 42
+
+            curr_player == @pl1 ? curr_player = @pl2 : curr_player = @pl1
+        end
+
+        display_winner
+    end
+
+    def chip_insertion(chosen_column, curr_player)
+        @field.each_with_index do |space, index|
+            if space[index][chosen_column + 1] == @pl1.mark || space[index][chosen_column + 1] == @pl2.mark || index == 5
+                @field[index][chosen_column] = curr_player.mark
+                break
+            end
+        end
+    end
+
+    def check_for_game_over(curr_player)
+        6.times do |r|
+            7.times do |c|
+                if @field.check_combos(r, c, curr_player.mark)
+                    @end_game = true
+                    @winner = curr_player
+                end
+            end
+        end
+    end
+
+    def check_combos(row, column, mark)
+        
+    end
+
+    def display_winner
+        if @turn_counter == 42
+            puts('It ended in a tie!')
+        else
+            puts("The winner is #{@winner}, congratulations!")
+        end
+    end
+
 end
 
 class Player
