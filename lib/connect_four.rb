@@ -1,5 +1,5 @@
 class GameBoard
-    attr_accessor :field, :winner, :end_game, :turn_counter
+    attr_accessor :field, :winner, :end_game, :turn_counter, :full_column_turn
 
     def initialize(pl1, pl2)
         @field = Array.new(6) { Array.new(7) { "\u25ef" } }
@@ -8,6 +8,7 @@ class GameBoard
         @winner = nil
         @end_game = false
         @turn_counter = 0
+        @full_column_turn = 0
         game
     end
 
@@ -37,11 +38,17 @@ class GameBoard
         curr_player = @pl1
 
         until @end_game
+            clear if @full_column_turn.zero?
+            @full_column_turn = 0
             display_field
-            puts("#{curr_player}, insert the chip into the column of your choice:")
-            chosen_column = gets.chomp.to_i
+            puts("#{curr_player.name}, insert the chip into the column of your choice:")
+            chosen_column = gets.chomp.to_i - 1
 
-            next if @field[0][chosen_column].include?(@pl1.mark) || @field[0][chosen_column].include?(@pl2.mark)
+            if @field[0][chosen_column].include?(@pl1.mark) || @field[0][chosen_column].include?(@pl2.mark)
+                puts('This column is full, please choose another column.')
+                @full_column_turn += 1
+                next
+            end
             
             chip_insertion(chosen_column, curr_player)
             @turn_counter += 1
@@ -51,23 +58,23 @@ class GameBoard
 
             curr_player == @pl1 ? curr_player = @pl2 : curr_player = @pl1
         end
-
+        clear
+        display_field
         display_winner
     end
 
     def chip_insertion(chosen_column, curr_player)
-        @field.each_with_index do |space, index|
-            if space[index][chosen_column + 1] == @pl1.mark || space[index][chosen_column + 1] == @pl2.mark || index == 5
-                @field[index][chosen_column] = curr_player.mark
-                break
-            end
-        end
+        i = 0
+
+        i += 1 until i == 5 || @field[i + 1][chosen_column] == @pl1.mark || @field[i + 1][chosen_column] == @pl2.mark
+
+        @field[i][chosen_column] = curr_player.mark
     end
 
     def check_for_game_over(curr_player)
         6.times do |r|
             7.times do |c|
-                if @field.check_combos(r, c, curr_player.mark)
+                if self.check_combos(r, c, curr_player.mark)
                     @end_game = true
                     @winner = curr_player
                 end
@@ -76,14 +83,44 @@ class GameBoard
     end
 
     def check_combos(row, column, mark)
-        
+        horizontal?(row, column, mark) || vertical?(row, column, mark) || diagonal?(row, column, mark)
+    end
+
+    def horizontal?(row, column, mark)
+        return if column > 3
+
+        @field[row][column] == mark && @field[row][column + 1] == mark && @field[row][column + 2] == mark && @field[row][column + 3] == mark
+    end
+
+    def vertical?(row, column, mark)
+        return if row > 2 
+
+        @field[row][column] == mark && @field[row + 1][column] == mark && @field[row + 2][column] == mark && @field[row + 3][column] == mark
+    end
+
+    def diagonal?(row, column, mark)
+        return unless row < 3
+
+        diagonal_left?(row, column, mark) || diagonal_right?(row, column, mark)
+    end
+
+    def diagonal_left?(row, column, mark)
+        return if column > 3
+
+        @field[row][column] == mark && @field[row + 1][column + 1] == mark && @field[row + 2][column + 2] == mark && @field[row + 3][column + 3] == mark
+    end
+
+    def diagonal_right?(row, column, mark)
+        return if column < 3
+
+        @field[row][column] == mark && @field[row + 1][column - 1] == mark && @field[row + 2][column - 2] == mark && @field[row + 3][column - 3] == mark
     end
 
     def display_winner
         if @turn_counter == 42
             puts('It ended in a tie!')
         else
-            puts("The winner is #{@winner}, congratulations!")
+            puts("The winner is #{@winner.name}, congratulations!")
         end
     end
 
@@ -111,3 +148,5 @@ end
 def clear
     print "\e[2J\e[H"
 end
+
+
